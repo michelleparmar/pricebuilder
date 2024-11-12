@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nanonets Usage Cost Calculator</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 p-8">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const PRICING_DATA = {
+            'Nanonets AI': {
+                'Instant Learning AI': 0.01,
+                'Data capture AI': 0.01,
+                'Classification AI': 0.01,
+                'Checkbox Detection': 0.01,
+                'Barcode Detection': 0.01,
+                'Signature Detection': 0.01,
+                'QR Code Detection': 0.01,
+                '2-way matching': 0.02,
+                '3-way matching': 0.03
+            },
+            'Post Processing': {
+                'Generative AI Based Post-Processing': 0.03,
+                'Python Block': 0.03,
+                'Mathematical Functions': 0.03,
+                'Automated File Renaming': 0.05
+            },
+            'External Integration': {
+                'Databases': 0.02,
+                'Accounting Tools': 0.03,
+                'ERP / CRM': 0.05
+            }
+        };
+
+        function UsageCalculator() {
+            const [lineItems, setLineItems] = React.useState([]);
+            const [numberOfRuns, setNumberOfRuns] = React.useState(0);
+            const [totalCost, setTotalCost] = React.useState(0);
+
+            const addLineItem = () => {
+                setLineItems([...lineItems, { category: '', feature: '', cost: 0 }]);
+            };
+
+            const removeLineItem = (index) => {
+                const newItems = lineItems.filter((_, i) => i !== index);
+                setLineItems(newItems);
+                calculateTotal(newItems, numberOfRuns);
+            };
+
+            const updateLineItem = (index, field, value) => {
+                const newItems = [...lineItems];
+                newItems[index] = { ...newItems[index], [field]: value };
+                
+                if (field === 'feature') {
+                    const feature = value;
+                    const category = newItems[index].category;
+                    if (feature && category) {
+                        newItems[index].cost = PRICING_DATA[category][feature] * numberOfRuns;
+                    }
+                }
+                
+                setLineItems(newItems);
+                calculateTotal(newItems, numberOfRuns);
+            };
+
+            const updateRuns = (event) => {
+                const newRuns = parseInt(event.target.value) || 0;
+                setNumberOfRuns(newRuns);
+                
+                const updatedItems = lineItems.map(item => ({
+                    ...item,
+                    cost: item.feature && item.category ? 
+                        PRICING_DATA[item.category][item.feature] * newRuns : 0
+                }));
+                
+                setLineItems(updatedItems);
+                calculateTotal(updatedItems, newRuns);
+            };
+
+            const calculateTotal = (items, runs) => {
+                const total = items.reduce((sum, item) => {
+                    if (item.category && item.feature) {
+                        return sum + (PRICING_DATA[item.category][item.feature] * runs);
+                    }
+                    return sum;
+                }, 0);
+                setTotalCost(total);
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-2xl font-bold mb-6">Usage Cost Calculator</h2>
+                    
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-4 mb-6">
+                            <label className="font-medium">Number of Monthly Runs:</label>
+                            <input
+                                type="number"
+                                className="border rounded p-2 w-32"
+                                value={numberOfRuns || ''}
+                                onChange={updateRuns}
+                                placeholder="Enter runs"
+                            />
+                        </div>
+
+                        <button 
+                            onClick={addLineItem}
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-4"
+                        >
+                            Add Line Item
+                        </button>
+                        
+                        {lineItems.map((item, index) => (
+                            <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
+                                <select
+                                    value={item.category}
+                                    onChange={(e) => updateLineItem(index, 'category', e.target.value)}
+                                    className="border rounded p-2 w-48"
+                                >
+                                    <option value="">Select Category</option>
+                                    {Object.keys(PRICING_DATA).map((category) => (
+                                        <option key={category} value={category}>
+                                            {category}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={item.feature}
+                                    onChange={(e) => updateLineItem(index, 'feature', e.target.value)}
+                                    className="border rounded p-2 w-48"
+                                >
+                                    <option value="">Select Feature</option>
+                                    {item.category && Object.keys(PRICING_DATA[item.category]).map((feature) => (
+                                        <option key={feature} value={feature}>
+                                            {feature} (${PRICING_DATA[item.category][feature]}/run)
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <div className="w-32 text-right">
+                                    ${item.cost ? item.cost.toFixed(2) : '0.00'}
+                                </div>
+
+                                <button
+                                    onClick={() => removeLineItem(index)}
+                                    className="text-red-500 hover:text-red-700"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ))}
+
+                        <div className="flex flex-col gap-2 items-end mt-6 pt-4 border-t">
+                            <div className="text-xl font-semibold">
+                                Total Monthly Cost: ${totalCost.toFixed(2)}
+                            </div>
+                            <div className="text-lg text-gray-600">
+                                Estimated Yearly Cost: ${(totalCost * 12).toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<UsageCalculator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
